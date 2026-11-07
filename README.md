@@ -43,6 +43,13 @@ Es una versión jugable del Tetris clásico con todas las mecánicas que esperar
 - **Sistema de puntuación** clásico de Tetris (100 / 300 / 500 / 800 multiplicado por nivel).
 - **Niveles** que aumentan cada 10 líneas y aceleran la caída.
 - **Pausa** y **Game Over** con opción de reinicio.
+- **Skins visuales** seleccionables desde el panel lateral, sin recargar la página:
+  - **Retro** — bloques cuadrados y colores planos (el estilo clásico).
+  - **Neón** — fondo negro y bloques con brillo (_glow_) usando `shadowBlur` del canvas.
+  - **Pastel** — colores suaves y esquinas redondeadas.
+  - **Pixel art** — una textura de píxeles con luces y sombras sobre cada bloque.
+
+  La skin elegida se guarda en `localStorage` y se aplica al volver a abrir el juego. Es independiente del tema claro/oscuro (Neón mantiene el tablero negro en ambos).
 
 ---
 
@@ -98,7 +105,7 @@ El juego se compone de tres archivos que cooperan:
 Define la estructura visual:
 
 - Un `<canvas id="board">` de **300 × 600** píxeles donde se renderiza el tablero.
-- Un panel lateral con `SCORE`, `LINES`, `LEVEL`, vista de la siguiente pieza y la lista de controles.
+- Un panel lateral con `SCORE`, `LINES`, `LEVEL`, vista de la siguiente pieza, el selector de `SKIN` y la lista de controles.
 - Un overlay para los estados **PAUSA** y **GAME OVER**.
 
 ### 2. `style.css`
@@ -117,7 +124,8 @@ Contiene toda la lógica del juego. A grandes rasgos:
 - **Limpieza de líneas** (`clearLines`): recorre el tablero de abajo hacia arriba; cada fila completa se elimina y se inserta una vacía en la cima.
 - **Puntuación**: usa la tabla clásica `[0, 100, 300, 500, 800]` multiplicada por el nivel actual; el hard drop suma 2 puntos por celda recorrida y el soft drop 1 punto por fila.
 - **Nivel y velocidad**: el nivel sube cada 10 líneas; la velocidad de caída se calcula como `max(100, 1000 − (level − 1) × 90)` milisegundos.
-- **Ghost piece** (`ghostY`): proyecta la posición final de la pieza actual hacia abajo y la dibuja con `globalAlpha = 0.2`.
+- **Ghost piece** (`ghostY`): proyecta la posición final de la pieza actual hacia abajo y la dibuja semitransparente (`globalAlpha` según el tema).
+- **Skins** (`SKINS`): cada skin define su paleta y su función de dibujo de bloque; `drawBlock` y `drawNutHole` delegan en la skin activa, así que cambiarla solo requiere volver a pintar.
 
 ### Flujo del juego
 
@@ -175,6 +183,7 @@ Algunos parámetros fáciles de tunear en `game.js`:
 | `ROWS`         | Filas del tablero                        | `20`                  |
 | `BLOCK`        | Tamaño en píxeles de cada celda          | `30`                  |
 | `COLORS`       | Paleta de colores por tipo de pieza      | 8 colores             |
+| `SKINS`        | Skins: paleta y función de dibujo        | 4 skins               |
 | `LINE_SCORES`  | Puntos por 1, 2, 3 o 4 líneas eliminadas | `[0,100,300,500,800]` |
 | `dropInterval` | Velocidad inicial de caída en ms         | `1000`                |
 

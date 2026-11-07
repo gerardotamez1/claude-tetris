@@ -14,6 +14,9 @@
   --kbd-text: #aaa;
   --overlay-bg: rgba(10, 10, 20, 0.75);
   --danger: #e57373;
+  --neon-canvas-bg: #000000;
+  --neon-border: #3a2a5a;
+  --neon-glow: rgba(120, 60, 255, 0.35);
 }
 
 [data-theme="light"] {
@@ -32,6 +35,8 @@
   --kbd-text: #444;
   --overlay-bg: rgba(240, 242, 248, 0.75);
   --danger: #d32f2f;
+  --neon-border: #2a1f45;
+  --neon-glow: rgba(90, 40, 200, 0.35);
 }
 
 *, *::before, *::after {
@@ -214,4 +219,31 @@ kbd {
 
 .theme-toggle:hover {
   border-color: var(--accent);
+}
+
+/* ---- Selector de skin ---- */
+.skin-select {
+  background: var(--canvas-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.skin-select:hover {
+  border-color: var(--accent);
+}
+
+/* Neón: el canvas es negro en ambos temas para que luzca el glow */
+[data-skin="neon"] #board,
+[data-skin="neon"] #next-canvas {
+  background: var(--neon-canvas-bg);
+  border-color: var(--neon-border);
+}
+
+[data-skin="neon"] #board {
+  box-shadow: 0 0 40px var(--neon-glow);
 }
