@@ -32,6 +32,11 @@ const PIECES = [
 
 const LINE_SCORES = [0, 100, 300, 500, 800];
 
+const RECORDS_KEY = 'tetris.records';
+const TOP_SIZE = 5;
+const NAME_MAX = 12;
+const DEFAULT_NAME = 'Jugador';
+
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 const nextCanvas = document.getElementById('next-canvas');
@@ -44,6 +49,18 @@ const overlayTitle = document.getElementById('overlay-title');
 const overlayScore = document.getElementById('overlay-score');
 const restartBtn = document.getElementById('restart-btn');
 const themeToggle = document.getElementById('theme-toggle');
+const comboEl = document.getElementById('combo');
+const startScreen = document.getElementById('start-screen');
+const startRecords = document.getElementById('start-records');
+const startStats = document.getElementById('start-stats');
+const playBtn = document.getElementById('play-btn');
+const resetRecordsBtn = document.getElementById('reset-records-btn');
+const gameoverRecords = document.getElementById('gameover-records');
+const newRecordMsg = document.getElementById('new-record-msg');
+const nameForm = document.getElementById('name-form');
+const nameInput = document.getElementById('name-input');
+const overlayRecords = document.getElementById('overlay-records');
+const overlayStats = document.getElementById('overlay-stats');
 
 const THEMES = {
   dark:  { grid: '#22222e', shine: 'rgba(255,255,255,0.12)', ghostAlpha: 0.2 },
@@ -52,6 +69,11 @@ const THEMES = {
 let theme = 'dark';
 
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
+let combo, maxCombo;
+let started = false;        // false hasta pulsar Jugar: no hay partida que controlar
+let pendingRecord = null;   // puntuación que entra en el top y espera nombre
+let pendingTop = [];        // top guardado en el momento del game over
+let focusTimer;
 
 function createBoard() {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
@@ -114,13 +136,16 @@ function clearLines() {
       r++;
     }
   }
+  // combo: piezas seguidas que limpian al menos una línea
+  combo = cleared ? combo + 1 : 0;
+  maxCombo = Math.max(maxCombo, combo);
   if (cleared) {
     lines += cleared;
     score += (LINE_SCORES[cleared] || 0) * level;
     level = Math.floor(lines / 10) + 1;
     dropInterval = Math.max(100, 1000 - (level - 1) * 90);
-    updateHUD();
   }
+  updateHUD();
 }
 
 function ghostY() {
@@ -165,6 +190,7 @@ function updateHUD() {
   scoreEl.textContent = score.toLocaleString();
   linesEl.textContent = lines;
   levelEl.textContent = level;
+  comboEl.textContent = combo;
 }
 
 function drawBlock(context, x, y, colorIndex, size, alpha) {
@@ -257,6 +283,7 @@ function endGame() {
   overlayTitle.textContent = 'GAME OVER';
   overlayScore.textContent = `Puntuación: ${score.toLocaleString()}`;
   overlay.classList.remove('hidden');
+  showGameOverRecords(); // tras mostrar el overlay: un campo oculto no puede recibir el foco
 }
 
 function togglePause() {
@@ -292,6 +319,12 @@ function loop(ts) {
 }
 
 function init() {
+  savePendingRecord(); // reiniciar sin pulsar Guardar no pierde el récord
+  hideGameOverRecords();
+  startScreen.classList.add('hidden');
+  started = true;
+  combo = 0;
+  maxCombo = 0;
   board = createBoard();
   score = 0;
   lines = 0;
@@ -310,6 +343,14 @@ function init() {
 }
 
 document.addEventListener('keydown', e => {
+  if (e.target === nameInput) return; // escribiendo el nombre del récord
+  if (!started) {
+    if (e.code === 'Enter' || e.code === 'Space') {
+      e.preventDefault();
+      init();
+    }
+    return;
+  }
   if (e.code === 'KeyP') { togglePause(); return; }
   if (paused || gameOver) return;
   switch (e.code) {
@@ -345,6 +386,8 @@ function setTheme(name) {
   if (current && next) {
     draw();
     drawNext();
+  } else if (board) {
+    drawIdleBoard();
   }
 }
 
@@ -353,4 +396,213 @@ themeToggle.addEventListener('click', () => {
   themeToggle.blur(); // evita que Space/flechas activen el botón mientras se juega
 });
 
-init();
+// ---- Tabla de records (localStorage) ----
+
+function emptyRecords() {
+  return { top: [], bestCombo: 0, maxLines: 0 };
+}
+
+function toCount(v) {
+  return Number.isFinite(v) && v > 0 ? Math.floor(v) : 0;
+}
+
+// Datos corruptos o de otra versión: se descarta lo que no encaje
+function sanitizeRecords(data) {
+  const rec = emptyRecords();
+  if (!data || typeof data !== 'object') return rec;
+  if (Array.isArray(data.top)) {
+    rec.top = data.top
+      .filter(e => e && typeof e === 'object' && typeof e.name === 'string' && Number.isFinite(e.score))
+      .map(e => ({
+        name: e.name.slice(0, NAME_MAX),
+        score: toCount(e.score),
+        lines: toCount(e.lines),
+        combo: toCount(e.combo),
+        date: typeof e.date === 'string' ? e.date : '',
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, TOP_SIZE);
+  }
+  rec.bestCombo = toCount(data.bestCombo);
+  rec.maxLines = toCount(data.maxLines);
+  return rec;
+}
+
+function loadRecords() {
+  try {
+    return sanitizeRecords(JSON.parse(localStorage.getItem(RECORDS_KEY)));
+  } catch {
+    return emptyRecords();
+  }
+}
+
+function saveRecords(rec) {
+  try {
+    localStorage.setItem(RECORDS_KEY, JSON.stringify(rec));
+  } catch {
+    // sin almacenamiento (modo privado, cuota...): el juego sigue sin records
+  }
+}
+
+function qualifies(top, value) {
+  return value > 0 && (top.length < TOP_SIZE || value > top[top.length - 1].score);
+}
+
+// Posición en la que entraría: tras los empates, que conservan su puesto
+function insertIndex(top, value) {
+  const i = top.findIndex(e => e.score < value);
+  return i === -1 ? top.length : i;
+}
+
+function cleanName(raw) {
+  return raw.trim().slice(0, NAME_MAX) || DEFAULT_NAME;
+}
+
+// Pinta el top en `container`. Solo textContent: los nombres son datos del usuario.
+function renderRecords(container, top, highlight) {
+  container.replaceChildren();
+  if (!top.length) {
+    const empty = document.createElement('p');
+    empty.className = 'records-empty';
+    empty.textContent = 'Sin records todavía';
+    container.append(empty);
+    return;
+  }
+  const table = document.createElement('table');
+  table.className = 'records-table';
+  const head = table.createTHead().insertRow();
+  for (const text of ['#', 'Nombre', 'Puntos', 'Líneas']) {
+    const th = document.createElement('th');
+    th.textContent = text;
+    head.append(th);
+  }
+  const body = table.createTBody();
+  top.forEach((e, i) => {
+    const row = body.insertRow();
+    if (i === highlight) row.className = 'highlight';
+    for (const text of [i + 1, e.name, e.score.toLocaleString(), e.lines]) {
+      row.insertCell().textContent = text;
+    }
+  });
+  container.append(table);
+}
+
+function renderStats(el, rec) {
+  el.textContent = `Mejor combo: ${rec.bestCombo} · Líneas máximas: ${rec.maxLines}`;
+}
+
+function showStartScreen() {
+  const rec = loadRecords();
+  renderRecords(startRecords, rec.top, -1);
+  renderStats(startStats, rec);
+  startScreen.classList.remove('hidden');
+}
+
+// Inserta la entrada en una copia del top; devuelve el nuevo top y su posición
+function withEntry(top, entry) {
+  const idx = insertIndex(top, entry.score);
+  const result = [...top];
+  result.splice(idx, 0, entry);
+  return { top: result.slice(0, TOP_SIZE), idx };
+}
+
+function pendingEntry() {
+  return { ...pendingRecord, name: cleanName(nameInput.value) };
+}
+
+// Top provisional con la puntuación actual insertada y resaltada
+function renderPendingTop() {
+  const { top, idx } = withEntry(pendingTop, pendingEntry());
+  renderRecords(overlayRecords, top, idx);
+}
+
+function showGameOverRecords() {
+  // combo y líneas máximas cuentan siempre, entre o no en el top
+  const rec = loadRecords();
+  rec.bestCombo = Math.max(rec.bestCombo, maxCombo);
+  rec.maxLines = Math.max(rec.maxLines, lines);
+  saveRecords(rec);
+  renderStats(overlayStats, rec);
+
+  if (qualifies(rec.top, score)) {
+    pendingRecord = { name: DEFAULT_NAME, score, lines, combo: maxCombo, date: new Date().toISOString() };
+    pendingTop = rec.top;
+    nameInput.value = DEFAULT_NAME;
+    newRecordMsg.classList.remove('hidden');
+    nameForm.classList.remove('hidden');
+    renderPendingTop();
+  } else {
+    renderRecords(overlayRecords, rec.top, -1);
+  }
+  gameoverRecords.classList.remove('hidden');
+  if (pendingRecord) {
+    // pequeña espera: las teclas que se seguían pulsando para jugar no deben
+    // acabar escritas en el nombre
+    clearTimeout(focusTimer);
+    focusTimer = setTimeout(() => {
+      if (!pendingRecord) return;
+      nameInput.focus();
+      nameInput.select();
+    }, 400);
+  }
+}
+
+function hideGameOverRecords() {
+  gameoverRecords.classList.add('hidden');
+  newRecordMsg.classList.add('hidden');
+  nameForm.classList.add('hidden');
+}
+
+function savePendingRecord() {
+  if (!pendingRecord) return;
+  const entry = pendingEntry();
+  pendingRecord = null;
+  clearTimeout(focusTimer);
+  const rec = loadRecords();
+  const { top, idx } = withEntry(rec.top, entry);
+  rec.top = top;
+  saveRecords(rec);
+  nameForm.classList.add('hidden');
+  nameInput.blur();
+  renderRecords(overlayRecords, rec.top, idx);
+}
+
+function drawIdleBoard() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawGrid();
+}
+
+nameForm.addEventListener('submit', e => {
+  e.preventDefault(); // Guardar o Enter en el campo
+  savePendingRecord();
+});
+
+// autorrepetición de una tecla mantenida desde la partida: no escribirla
+nameInput.addEventListener('keydown', e => {
+  if (e.repeat) e.preventDefault();
+});
+
+nameInput.addEventListener('input', () => {
+  if (pendingRecord) renderPendingTop();
+});
+
+playBtn.addEventListener('click', () => {
+  playBtn.blur();
+  init();
+});
+
+resetRecordsBtn.addEventListener('click', () => {
+  resetRecordsBtn.blur();
+  if (!confirm('¿Borrar todos los records? Esta acción no se puede deshacer.')) return;
+  try {
+    localStorage.removeItem(RECORDS_KEY);
+  } catch {
+    // nada que borrar si no hay almacenamiento
+  }
+  showStartScreen();
+});
+
+// Arranque: tablero vacío detrás de la pantalla de inicio; Jugar llama a init()
+board = createBoard();
+drawIdleBoard();
+showStartScreen();
