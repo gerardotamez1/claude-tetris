@@ -26,6 +26,10 @@
           <span class="label">LEVEL</span>
           <span class="value" id="level">1</span>
         </div>
+        <div class="panel-section">
+          <span class="label">COMBO</span>
+          <span class="value" id="combo">0</span>
+        </div>
 
         <div class="panel-section">
           <span class="label">NEXT</span>
@@ -49,6 +53,15 @@
       <div class="overlay-box">
         <p id="overlay-title">GAME OVER</p>
         <p id="overlay-score"></p>
+        <div id="gameover-records" class="records hidden">
+          <p id="new-record-msg" class="new-record hidden">¡Nuevo récord!</p>
+          <form id="name-form" class="name-form hidden">
+            <input id="name-input" type="text" maxlength="12" value="Jugador" aria-label="Tu nombre" autocomplete="off" spellcheck="false" />
+            <button type="submit" class="small-btn" tabindex="-1">Guardar</button>
+          </form>
+          <div id="overlay-records"></div>
+          <p id="overlay-stats" class="records-stats"></p>
+        </div>
         <button id="restart-btn">Reiniciar</button>
       </div>
     </div>
@@ -77,6 +90,17 @@
           </div>
           <p class="pause-hint">El nivel inicial se aplica al reiniciar</p>
         </div>
+      </div>
+    </div>
+
+    <div id="start-screen" class="overlay hidden">
+      <div class="overlay-box">
+        <p class="records-title">RÉCORDS</p>
+        <div id="start-records" class="records"></div>
+        <p id="start-stats" class="records-stats"></p>
+        <button id="play-btn" class="play-btn" tabindex="-1">Jugar</button>
+        <p class="start-hint">o pulsa <kbd>Enter</kbd> / <kbd>Espacio</kbd></p>
+        <button id="reset-records-btn" class="small-btn danger-btn" tabindex="-1">Borrar records</button>
       </div>
     </div>
   </div>
