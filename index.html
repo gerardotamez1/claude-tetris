@@ -39,7 +39,7 @@
             <li><kbd>↑</kbd> rotar</li>
             <li><kbd>↓</kbd> bajar</li>
             <li><kbd>Space</kbd> caída</li>
-            <li><kbd>P</kbd> pausa</li>
+            <li><kbd>P</kbd><kbd>Esc</kbd> pausa</li>
           </ul>
         </div>
       </aside>
@@ -50,6 +50,33 @@
         <p id="overlay-title">GAME OVER</p>
         <p id="overlay-score"></p>
         <button id="restart-btn">Reiniciar</button>
+      </div>
+    </div>
+
+    <div id="pause-menu" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+      <div class="overlay-box pause-box">
+        <p id="pause-title">PAUSA</p>
+        <div class="pause-options">
+          <button class="pause-option" data-action="resume" tabindex="-1">Reanudar</button>
+          <button class="pause-option" data-action="restart" tabindex="-1">Reiniciar</button>
+          <button class="pause-option" data-action="controls" tabindex="-1" aria-expanded="false" aria-controls="pause-controls">Ver controles</button>
+          <ul id="pause-controls" class="pause-controls hidden">
+            <li><span><kbd>←</kbd><kbd>→</kbd></span> mover</li>
+            <li><span><kbd>↑</kbd><kbd>X</kbd></span> rotar</li>
+            <li><span><kbd>↓</kbd></span> bajar</li>
+            <li><span><kbd>Space</kbd></span> caída</li>
+            <li><span><kbd>P</kbd><kbd>Esc</kbd></span> pausa</li>
+          </ul>
+          <div class="pause-option level-option" data-action="level" tabindex="-1" aria-label="Nivel inicial">
+            <span>Nivel inicial</span>
+            <span class="level-picker">
+              <button class="level-step" data-step="-1" tabindex="-1" aria-label="Bajar nivel inicial">◀</button>
+              <span id="start-level-value">1</span>
+              <button class="level-step" data-step="1" tabindex="-1" aria-label="Subir nivel inicial">▶</button>
+            </span>
+          </div>
+          <p class="pause-hint">El nivel inicial se aplica al reiniciar</p>
+        </div>
       </div>
     </div>
   </div>

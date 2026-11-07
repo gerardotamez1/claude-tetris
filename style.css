@@ -14,6 +14,8 @@
   --kbd-text: #aaa;
   --overlay-bg: rgba(10, 10, 20, 0.75);
   --danger: #e57373;
+  --menu-bg: rgba(26, 26, 37, 0.9);
+  --menu-focus: rgba(122, 162, 247, 0.18);
 }
 
 [data-theme="light"] {
@@ -32,6 +34,8 @@
   --kbd-text: #444;
   --overlay-bg: rgba(240, 242, 248, 0.75);
   --danger: #d32f2f;
+  --menu-bg: rgba(255, 255, 255, 0.92);
+  --menu-focus: rgba(59, 91, 219, 0.14);
 }
 
 *, *::before, *::after {
@@ -195,6 +199,110 @@ kbd {
 
 #restart-btn:hover {
   background: var(--accent-hover);
+}
+
+/* ---- Menú de pausa ---- */
+#pause-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  color: var(--accent);
+}
+
+.pause-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 220px;
+  padding: 10px;
+  background: var(--menu-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.pause-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+}
+
+.pause-option:hover,
+.pause-option:focus {
+  background: var(--menu-focus);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.level-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#start-level-value {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 16px;
+  font-weight: 700;
+  min-width: 2ch;
+  text-align: center;
+}
+
+.level-step {
+  background: var(--kbd-bg);
+  border: 1px solid var(--kbd-border);
+  border-radius: 3px;
+  color: var(--kbd-text);
+  font-size: 10px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+
+.level-step:hover {
+  border-color: var(--accent);
+}
+
+.pause-controls {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 12px 8px;
+}
+
+.pause-controls.hidden {
+  display: none;
+}
+
+.pause-controls li {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pause-controls li > span {
+  display: flex;
+  gap: 4px;
+  min-width: 72px;
+}
+
+.pause-hint {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 2px 12px 0;
 }
 
 /* ---- Toggle de tema ---- */
