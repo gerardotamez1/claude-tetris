@@ -46,6 +46,13 @@ Es una versión jugable del Tetris clásico con todas las mecánicas que esperar
 - **Game Over** con opción de reinicio.
 - **Contador de combo**: piezas seguidas que limpian al menos una línea.
 - **Tabla de records local** (guardada en `localStorage`): top 5 con nombre del jugador, mejor combo y líneas máximas. Se muestra en la pantalla de inicio y en el Game Over; si tu puntuación entra en el top puedes escribir tu nombre y la fila se resalta. La pantalla de inicio tiene un botón para borrar los records.
+- **Skins visuales** seleccionables desde el panel lateral, sin recargar la página:
+  - **Retro** — bloques cuadrados y colores planos (el estilo clásico).
+  - **Neón** — fondo negro y bloques con brillo (_glow_) usando `shadowBlur` del canvas.
+  - **Pastel** — colores suaves y esquinas redondeadas.
+  - **Pixel art** — una textura de píxeles con luces y sombras sobre cada bloque.
+
+  La skin elegida se guarda en `localStorage` y se aplica al volver a abrir el juego. Es independiente del tema claro/oscuro (Neón mantiene el tablero negro en ambos).
 
 ---
 
@@ -111,7 +118,7 @@ El juego se compone de tres archivos que cooperan:
 Define la estructura visual:
 
 - Un `<canvas id="board">` de **300 × 600** píxeles donde se renderiza el tablero.
-- Un panel lateral con `SCORE`, `LINES`, `LEVEL`, `COMBO`, vista de la siguiente pieza y la lista de controles.
+- Un panel lateral con `SCORE`, `LINES`, `LEVEL`, `COMBO`, vista de la siguiente pieza, el selector de `SKIN` y la lista de controles.
 - Un overlay para **GAME OVER** (incluye la tabla de records y el campo para el nombre) y otro, `#pause-menu`, para el menú de pausa.
 - La **pantalla de inicio** (`#start-screen`) con los records y los botones **Jugar** y **Borrar records**.
 
@@ -132,7 +139,8 @@ Contiene toda la lógica del juego. A grandes rasgos:
 - **Puntuación**: usa la tabla clásica `[0, 100, 300, 500, 800]` multiplicada por el nivel actual; el hard drop suma 2 puntos por celda recorrida y el soft drop 1 punto por fila.
 - **Nivel y velocidad**: la partida empieza en el nivel inicial elegido en el menú de pausa (1 por defecto) y sube cada 10 líneas; la velocidad de caída se calcula como `max(100, 1000 − (level − 1) × 90)` milisegundos.
 - **Records** (`loadRecords` / `saveRecords`): leen y escriben la clave `tetris.records` de `localStorage` dentro de `try/catch`; si el almacenamiento falla o los datos están corruptos, el juego sigue funcionando sin records.
-- **Ghost piece** (`ghostY`): proyecta la posición final de la pieza actual hacia abajo y la dibuja con `globalAlpha = 0.2`.
+- **Ghost piece** (`ghostY`): proyecta la posición final de la pieza actual hacia abajo y la dibuja semitransparente (`globalAlpha` según el tema).
+- **Skins** (`SKINS`): cada skin define su paleta y su función de dibujo de bloque; `drawBlock` y `drawNutHole` delegan en la skin activa, así que cambiarla solo requiere volver a pintar.
 
 ### Flujo del juego
 
@@ -194,6 +202,7 @@ Algunos parámetros fáciles de tunear en `game.js`:
 | `ROWS`         | Filas del tablero                        | `20`                  |
 | `BLOCK`        | Tamaño en píxeles de cada celda          | `30`                  |
 | `COLORS`       | Paleta de colores por tipo de pieza      | 8 colores             |
+| `SKINS`        | Skins: paleta y función de dibujo        | 4 skins               |
 | `LINE_SCORES`  | Puntos por 1, 2, 3 o 4 líneas eliminadas | `[0,100,300,500,800]` |
 | `dropInterval` | Velocidad inicial de caída en ms         | `1000`                |
 
